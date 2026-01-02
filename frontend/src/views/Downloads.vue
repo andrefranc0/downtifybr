@@ -1,56 +1,28 @@
 <template>
-  <div class="min-h-screen">
-    <Navbar />
-    <div class="container mx-auto p-4">
-      <h1 class="text-2xl mb-4">Downloads</h1>
-      <div class="mb-4 flex items-center space-x-2">
-        <button
-          class="btn btn-primary btn-sm"
-          @click="refresh"
-          :disabled="loading"
-        >
-          <span
-            v-if="loading"
-            class="loading loading-spinner loading-xs"
-          ></span>
-          <span v-else>Refresh</span>
-        </button>
+  <div class="min-h-screen m-2">
+    <h1 class="m-4 text-xl">Downloads</h1>
+
+    <div v-if="downloads.length === 0">
+      <div class="alert alert-info shadow-lg">
+        <span>No downloads available.</span>
       </div>
-      <div v-if="error" class="alert alert-error mb-4">{{ error }}</div>
-      <div class="card bg-base-100 shadow">
-        <div class="card-body">
-          <ul class="space-y-2">
-            <li
-              v-for="file in files"
-              :key="file"
-              class="flex items-center justify-between"
-            >
-              <span class="truncate mr-2">{{ file }}</span>
-              <div class="flex items-center space-x-2">
-                <a
-                  class="btn btn-sm"
-                  :href="downloadUrl(file)"
-                  download
-                >
-                  Download
-                </a>
-                <button
-                  class="btn btn-sm btn-error"
-                  @click="onDelete(file)"
-                  :disabled="deleting[file] === true"
-                >
-                  <span
-                    v-if="deleting[file] === true"
-                    class="loading loading-spinner loading-xs"
-                  ></span>
-                  <span v-else>Delete</span>
-                </button>
-              </div>
-            </li>
-          </ul>
-          <div v-if="!loading && files.length === 0" class="text-sm opacity-70">
-            No files found.
-          </div>
+    </div>
+
+    <div v-else class="grid gap-2">
+      <div
+        v-for="(file, index) in downloads"
+        :key="index"
+        class="card card-bordered shadow-lg bg-base-100"
+      >
+        <div class="card-body flex-row items-center justify-between">
+          <span class="truncate">{{ file }}</span>
+
+          <button
+            class="btn btn-square btn-ghost"
+            @click="download(file)"
+          >
+            <Icon icon="clarity:download-line" class="h-6 w-6" />
+          </button>
         </div>
       </div>
     </div>
@@ -58,52 +30,39 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import Navbar from '/src/components/Navbar.vue'
-import API from '/src/model/api'
+import { Icon } from '@iconify/vue'
+import { computed } from 'vue'
+import { useDownloadsStore } from '../stores/downloads'
 
-const files = ref([])
-const loading = ref(false)
-const error = ref('')
-const deleting = ref({})
+const store = useDownloadsStore()
 
-function normalizeFile(file) {
-  return file.replace(/^\/?downloads\//, '')
+const downloads = computed(() => store.downloads)
+
+/**
+ * Corrige URLs que vêm assim:
+ * /downloads/%2Fdownloads%2FArquivo.mp3
+ */
+function normalizeDownloadUrl(url) {
+  // Decodifica caso venha com %2F
+  let decoded = decodeURIComponent(url)
+
+  // Remove qualquer "/downloads/" duplicado no começo
+  decoded = decoded.replace(/^\/?downloads\/+/g, '')
+
+  // Monta a URL final correta
+  return `/downloads/${decoded}`
 }
 
-function downloadUrl(file) {
-  const name = normalizeFile(file)
-  return `/downloads/${encodeURIComponent(name)}`
-}
+function download(file) {
+  const url = normalizeDownloadUrl(file)
 
-async function refresh() {
-  loading.value = true
-  error.value = ''
-  try {
-    const res = await API.listDownloads()
-    files.value = res.data || []
-  } catch (e) {
-    error.value = 'Failed to load downloads'
-  } finally {
-    loading.value = false
-  }
+  const a = document.createElement('a')
+  a.href = url
+  a.download = url.split('/').pop()
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
 }
-
-async function onDelete(file) {
-  deleting.value = { ...deleting.value, [file]: true }
-  try {
-    await API.deleteDownload(file)
-    files.value = files.value.filter((f) => f !== file)
-  } catch (e) {
-    alert('Failed to delete ' + file)
-  } finally {
-    deleting.value = { ...deleting.value, [file]: false }
-  }
-}
-
-onMounted(() => {
-  refresh()
-})
 </script>
 
 <style scoped></style>
