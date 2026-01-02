@@ -17,10 +17,7 @@
         <div class="card-body flex-row items-center justify-between">
           <span class="truncate">{{ file }}</span>
 
-          <button
-            class="btn btn-square btn-ghost"
-            @click="download(file)"
-          >
+          <button class="btn btn-square btn-ghost" @click="download(file)">
             <Icon icon="clarity:download-line" class="h-6 w-6" />
           </button>
         </div>
