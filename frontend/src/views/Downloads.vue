@@ -29,10 +29,11 @@
               <div class="flex items-center space-x-2">
                 <a
                   class="btn btn-sm"
-                  :href="`/downloads/${encodeURIComponent(file)}`"
+                  :href="downloadUrl(file)"
                   download
-                  >Download</a
                 >
+                  Download
+                </a>
                 <button
                   class="btn btn-sm btn-error"
                   @click="onDelete(file)"
@@ -65,6 +66,15 @@ const files = ref([])
 const loading = ref(false)
 const error = ref('')
 const deleting = ref({})
+
+function normalizeFile(file) {
+  return file.replace(/^\/?downloads\//, '')
+}
+
+function downloadUrl(file) {
+  const name = normalizeFile(file)
+  return `/downloads/${encodeURIComponent(name)}`
+}
 
 async function refresh() {
   loading.value = true
